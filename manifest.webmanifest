@@ -1,0 +1,17 @@
+{
+  "name": "Sinais do Louvor",
+  "short_name": "Sinais",
+  "description": "Comunicação silenciosa entre ministro de louvor e sonoplastia.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#071014",
+  "theme_color": "#071014",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

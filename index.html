@@ -1,0 +1,1190 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Controle silencioso para comunicação entre ministro de louvor e sonoplastia.">
+  <meta name="theme-color" content="#071014">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Sinais do Louvor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071014;
+      --panel: #0d171d;
+      --panel-2: #111f27;
+      --ink: #f6fbff;
+      --muted: #9bb0bc;
+      --line: rgba(255, 255, 255, 0.1);
+      --accent: #2dd4bf;
+      --accent-2: #38bdf8;
+      --up: #21c45d;
+      --down: #ef4444;
+      --warn: #f59e0b;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(45, 212, 191, 0.18), transparent 34rem),
+        linear-gradient(145deg, #061115 0%, #0b151b 44%, #111719 100%);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .phone {
+      width: min(100%, 430px);
+      min-height: calc(100vh - 36px);
+      background: rgba(7, 16, 20, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen {
+      display: none;
+      flex: 1;
+      padding: 18px;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      color: #062322;
+      background: linear-gradient(135deg, var(--accent), #bef264);
+      box-shadow: 0 12px 30px rgba(45, 212, 191, 0.25);
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .brand-subtitle {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .ghost-btn,
+    .icon-btn {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--ink);
+      min-height: 42px;
+    }
+
+    .ghost-btn {
+      border-radius: var(--radius);
+      padding: 0 14px;
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+    }
+
+    .hero {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      justify-content: center;
+      gap: 24px;
+      padding: 26px 0;
+    }
+
+    .hero h1,
+    .role-head h1 {
+      margin: 0;
+      font-size: clamp(34px, 10vw, 54px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .hero p,
+    .role-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 32ch;
+    }
+
+    .room-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 52px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0 14px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.06);
+      outline: none;
+    }
+
+    select {
+      color: var(--ink);
+    }
+
+    .primary-btn,
+    .role-card,
+    .action-btn,
+    .instrument-card,
+    .ack-btn,
+    .add-btn {
+      border: 0;
+      border-radius: var(--radius);
+      color: var(--ink);
+    }
+
+    .primary-btn {
+      min-height: 56px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #041317;
+      font-weight: 800;
+      box-shadow: 0 16px 34px rgba(45, 212, 191, 0.22);
+    }
+
+    .role-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .role-card {
+      min-height: 154px;
+      padding: 18px;
+      text-align: left;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .role-card strong {
+      display: block;
+      font-size: 22px;
+      margin-top: 10px;
+    }
+
+    .role-card span {
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .room-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 8px 10px;
+      border: 1px solid rgba(45, 212, 191, 0.28);
+      color: #b9fff5;
+      background: rgba(45, 212, 191, 0.08);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(45, 212, 191, 0.12);
+    }
+
+    .sender-layout {
+      gap: 14px;
+    }
+
+    .selected-stage {
+      min-height: 234px;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+        var(--panel);
+      border-radius: var(--radius);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .selected-stage::after {
+      content: "";
+      position: absolute;
+      inset: auto 24px 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.26), transparent);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      text-align: center;
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+    }
+
+    .empty-state svg {
+      opacity: 0.7;
+    }
+
+    .selected-card {
+      width: min(100%, 270px);
+      aspect-ratio: 1 / 0.92;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border: 2px solid rgba(45, 212, 191, 0.7);
+      background: rgba(4, 18, 22, 0.86);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 42px rgba(0, 0, 0, 0.36);
+      animation: rise 220ms ease-out;
+    }
+
+    .selected-icon {
+      width: 112px;
+      height: 112px;
+      display: grid;
+      place-items: center;
+      border-radius: 32px;
+      color: var(--channel-color);
+      background: color-mix(in srgb, var(--channel-color) 18%, rgba(255, 255, 255, 0.04));
+      margin-bottom: 12px;
+    }
+
+    .selected-card h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .selected-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0.72;
+        transform: translateY(22px) scale(0.92);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .action-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .action-btn {
+      min-height: 112px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 800;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+    }
+
+    .action-btn svg {
+      width: 42px;
+      height: 42px;
+    }
+
+    .action-btn.up {
+      background: linear-gradient(160deg, rgba(33, 196, 93, 0.24), rgba(17, 31, 39, 0.96));
+      border-color: rgba(33, 196, 93, 0.28);
+    }
+
+    .action-btn.down {
+      background: linear-gradient(160deg, rgba(239, 68, 68, 0.22), rgba(17, 31, 39, 0.96));
+      border-color: rgba(239, 68, 68, 0.28);
+    }
+
+    .action-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 4px 0 10px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .section-head span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .config-panel {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .config-row {
+      display: grid;
+      grid-template-columns: 1fr 104px;
+      gap: 10px;
+    }
+
+    .count-control {
+      display: grid;
+      grid-template-columns: 36px 1fr 36px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      min-height: 52px;
+    }
+
+    .count-control button {
+      width: 36px;
+      height: 52px;
+      border: 0;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 900;
+    }
+
+    .count-control strong {
+      text-align: center;
+    }
+
+    .add-line {
+      display: grid;
+      grid-template-columns: 1fr 118px 48px;
+      gap: 8px;
+    }
+
+    .add-btn {
+      background: rgba(45, 212, 191, 0.18);
+      border: 1px solid rgba(45, 212, 191, 0.24);
+      min-height: 52px;
+      display: grid;
+      place-items: center;
+    }
+
+    .instrument-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .instrument-card {
+      min-height: 104px;
+      padding: 10px 8px;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .instrument-card.active {
+      transform: translateY(-4px);
+      border-color: color-mix(in srgb, var(--channel-color) 74%, #ffffff);
+      background: color-mix(in srgb, var(--channel-color) 18%, rgba(255, 255, 255, 0.04));
+      box-shadow: 0 12px 28px color-mix(in srgb, var(--channel-color) 18%, transparent);
+    }
+
+    .instrument-icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      color: var(--channel-color);
+    }
+
+    .instrument-card span {
+      width: 100%;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.15;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .last-signal {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .last-signal strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      z-index: 10;
+      width: min(calc(100% - 36px), 392px);
+      transform: translate(-50%, 130%);
+      opacity: 0;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      background: #ebfffb;
+      color: #062322;
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+      transition: transform 220ms ease, opacity 220ms ease;
+      font-weight: 800;
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+
+    .receiver-feed {
+      display: grid;
+      gap: 10px;
+      flex: 1;
+      align-content: start;
+    }
+
+    .signal-card {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 12px;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .signal-card.acknowledged {
+      opacity: 0.68;
+    }
+
+    .signal-icon {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      color: var(--signal-color);
+      background: color-mix(in srgb, var(--signal-color) 16%, rgba(255, 255, 255, 0.05));
+    }
+
+    .signal-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .signal-meta {
+      margin: 4px 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .ack-btn {
+      min-height: 42px;
+      width: 100%;
+      background: rgba(45, 212, 191, 0.16);
+      border: 1px solid rgba(45, 212, 191, 0.26);
+      font-weight: 800;
+    }
+
+    .ack-btn:disabled {
+      color: #b6c6cc;
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--line);
+      cursor: default;
+    }
+
+    .empty-feed {
+      min-height: 260px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius);
+      padding: 26px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .toolbar .ghost-btn {
+      flex: 1;
+    }
+
+    svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .fill-icon {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    @media (max-width: 390px) {
+      .app-shell {
+        padding: 0;
+      }
+
+      .phone {
+        min-height: 100vh;
+        width: 100%;
+        border: 0;
+      }
+
+      .screen {
+        padding: 14px;
+      }
+
+      .instrument-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .config-row,
+      .add-line {
+        grid-template-columns: 1fr;
+      }
+
+      .action-btn {
+        min-height: 104px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="phone" aria-live="polite">
+      <section class="screen active" data-screen="home">
+        <div class="hero">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            </div>
+            <div>
+              <p class="brand-subtitle">Comunicação ao vivo</p>
+              <h1 class="brand-title">Sinais do Louvor</h1>
+            </div>
+          </div>
+
+          <div>
+            <h1>Palco e som na mesma sintonia.</h1>
+            <p>Entre em uma sala, escolha sua função e envie pedidos de volume sem quebrar o momento.</p>
+          </div>
+
+          <form class="room-form" id="room-form">
+            <div class="field">
+              <label for="room-code">Código da sala</label>
+              <div class="input-row">
+                <input id="room-code" name="room-code" value="CULTO-1930" autocomplete="off" inputmode="latin" maxlength="18">
+                <button class="icon-btn" type="button" id="random-room" aria-label="Gerar código">
+                  <svg viewBox="0 0 24 24"><path d="M16 3h5v5"></path><path d="M4 20 21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+                </button>
+              </div>
+            </div>
+            <button class="primary-btn" type="submit">Entrar na sala</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="role">
+        <div class="topbar">
+          <button class="icon-btn" type="button" data-go="home" aria-label="Voltar">
+            <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>
+          </button>
+          <span class="room-chip"><span class="status-dot"></span><span data-room-label>--</span></span>
+        </div>
+        <div class="role-head">
+          <h1>Como você vai usar?</h1>
+          <p>O mesmo código conecta quem envia no palco e quem recebe na mesa de som.</p>
+        </div>
+        <div class="role-grid">
+          <button class="role-card" type="button" data-role="sender">
+            <svg viewBox="0 0 24 24"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4 20-7Z"></path></svg>
+            <strong>Vou enviar</strong>
+            <span>Painel do ministro ou líder para pedir ajustes rapidamente.</span>
+          </button>
+          <button class="role-card" type="button" data-role="receiver">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16v12H5.17L4 17.17V4Z"></path><path d="m8 9 3 3 5-5"></path></svg>
+            <strong>Vou receber</strong>
+            <span>Painel da sonoplastia com confirmação simples de recebimento.</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="screen sender-layout" data-screen="sender">
+        <div class="topbar">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4 20-7Z"></path></svg>
+            </div>
+            <div>
+              <p class="brand-subtitle">Enviando sinais</p>
+              <h1 class="brand-title" data-room-label>--</h1>
+            </div>
+          </div>
+          <button class="ghost-btn" type="button" data-go="role">Trocar</button>
+        </div>
+
+        <div class="selected-stage" id="selected-stage"></div>
+
+        <div class="action-panel">
+          <button class="action-btn up" type="button" data-action="aumentar" disabled>
+            <svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"></path></svg>
+            Aumentar
+          </button>
+          <button class="action-btn down" type="button" data-action="abaixar" disabled>
+            <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>
+            Abaixar
+          </button>
+        </div>
+
+        <div class="last-signal" id="last-signal">
+          <div>
+            <strong>Nenhum sinal enviado</strong>
+            Escolha um instrumento e toque em aumentar ou abaixar.
+          </div>
+        </div>
+
+        <div class="config-panel">
+          <div class="section-head">
+            <h2>Instrumentos</h2>
+            <span><span id="channel-count">0</span> canais</span>
+          </div>
+          <div class="config-row">
+            <div class="field">
+              <label>Quantidade rápida</label>
+              <div class="count-control">
+                <button type="button" id="minus-channel" aria-label="Diminuir quantidade">-</button>
+                <strong id="count-value">0</strong>
+                <button type="button" id="plus-channel" aria-label="Aumentar quantidade">+</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="icon-preset">Ícone</label>
+              <select id="icon-preset">
+                <option value="mic">Voz</option>
+                <option value="guitar">Guitarra</option>
+                <option value="drum">Bateria</option>
+                <option value="keys">Teclado</option>
+                <option value="bass">Baixo</option>
+                <option value="monitor">Retorno</option>
+              </select>
+            </div>
+          </div>
+          <form class="add-line" id="add-channel-form">
+            <input id="channel-name" autocomplete="off" placeholder="Novo canal">
+            <select id="channel-color" aria-label="Cor do canal">
+              <option value="#38bdf8">Azul</option>
+              <option value="#2dd4bf">Verde água</option>
+              <option value="#f97316">Laranja</option>
+              <option value="#ef4444">Vermelho</option>
+              <option value="#a78bfa">Violeta</option>
+            </select>
+            <button class="add-btn" type="submit" aria-label="Adicionar">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            </button>
+          </form>
+        </div>
+
+        <div>
+          <div class="section-head">
+            <h2>Toque em um canal</h2>
+            <span>Ele sobe para confirmar</span>
+          </div>
+          <div class="instrument-grid" id="instrument-grid"></div>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="receiver">
+        <div class="topbar">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 4h16v12H5.17L4 17.17V4Z"></path><path d="m8 9 3 3 5-5"></path></svg>
+            </div>
+            <div>
+              <p class="brand-subtitle">Recebendo sinais</p>
+              <h1 class="brand-title" data-room-label>--</h1>
+            </div>
+          </div>
+          <button class="ghost-btn" type="button" data-go="role">Trocar</button>
+        </div>
+
+        <div class="toolbar">
+          <button class="ghost-btn" type="button" id="clear-ack">Limpar recebidos</button>
+          <button class="ghost-btn" type="button" id="demo-signal">Teste</button>
+        </div>
+
+        <div class="receiver-feed" id="receiver-feed"></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const defaultChannels = [
+      { id: "voz-principal", name: "Voz principal", type: "mic", color: "#38bdf8" },
+      { id: "bateria", name: "Bateria", type: "drum", color: "#ef4444" },
+      { id: "guitarra", name: "Guitarra", type: "guitar", color: "#f97316" },
+      { id: "teclado", name: "Teclado", type: "keys", color: "#a78bfa" },
+      { id: "baixo", name: "Baixo", type: "bass", color: "#22c55e" },
+      { id: "violao", name: "Violão", type: "guitar", color: "#f59e0b" },
+      { id: "retorno", name: "Retorno", type: "monitor", color: "#2dd4bf" },
+      { id: "playback", name: "Playback", type: "wave", color: "#e879f9" }
+    ];
+
+    const state = {
+      room: "CULTO-1930",
+      channels: [],
+      selectedId: null,
+      signals: []
+    };
+
+    const screens = [...document.querySelectorAll(".screen")];
+    const roomLabels = [...document.querySelectorAll("[data-room-label]")];
+    const stage = document.querySelector("#selected-stage");
+    const grid = document.querySelector("#instrument-grid");
+    const countValue = document.querySelector("#count-value");
+    const channelCount = document.querySelector("#channel-count");
+    const actionButtons = [...document.querySelectorAll("[data-action]")];
+    const feed = document.querySelector("#receiver-feed");
+    const lastSignal = document.querySelector("#last-signal");
+    const toast = document.querySelector("#toast");
+    const channel = "BroadcastChannel" in window ? new BroadcastChannel("louvor-sinais") : null;
+
+    function icon(type) {
+      const icons = {
+        mic: '<svg viewBox="0 0 24 24"><path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Z"></path><path d="M18 10a6 6 0 0 1-12 0"></path><path d="M12 18v4"></path><path d="M8 22h8"></path></svg>',
+        drum: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="8" rx="8" ry="3"></ellipse><path d="M4 8v8c0 1.7 3.6 3 8 3s8-1.3 8-3V8"></path><path d="M7 3l4 4"></path><path d="M17 3l-4 4"></path></svg>',
+        guitar: '<svg viewBox="0 0 24 24"><path d="m15 5 4-4 4 4-4 4"></path><path d="m14 6 4 4"></path><path d="M9.5 10.5 14 6"></path><path d="M4.5 12.5C2 15 2 19 4.5 21.5S11 24 13.5 21.5s2.5-6.5 0-9-6.5-2.5-9 0Z"></path><circle cx="8" cy="17" r="1.8"></circle></svg>',
+        keys: '<svg viewBox="0 0 24 24"><path d="M3 6h18v12H3z"></path><path d="M7 6v12"></path><path d="M12 6v12"></path><path d="M17 6v12"></path><path d="M9 6v7"></path><path d="M14 6v7"></path><path d="M19 6v7"></path></svg>',
+        bass: '<svg viewBox="0 0 24 24"><path d="M15 3h5v5"></path><path d="M18 6 9 15"></path><path d="M8 12c-3 0-5 2-5 5a4 4 0 0 0 4 4c3 0 5-2 5-5"></path><path d="M7 17h.01"></path></svg>',
+        monitor: '<svg viewBox="0 0 24 24"><path d="M4 6h16v10H4z"></path><path d="M8 20h8"></path><path d="M12 16v4"></path><path d="M8 11h8"></path></svg>',
+        wave: '<svg viewBox="0 0 24 24"><path d="M4 12h2l2-7 4 14 3-10 2 3h3"></path></svg>',
+        note: '<svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>'
+      };
+
+      return icons[type] || icons.note;
+    }
+
+    function key(name) {
+      return `sinais-louvor:${state.room}:${name}`;
+    }
+
+    function saveChannels() {
+      localStorage.setItem(key("channels"), JSON.stringify(state.channels));
+    }
+
+    function saveSignals() {
+      localStorage.setItem(key("signals"), JSON.stringify(state.signals));
+      if (channel) {
+        channel.postMessage({ room: state.room, signals: state.signals });
+      }
+    }
+
+    function loadRoomData() {
+      state.channels = JSON.parse(localStorage.getItem(key("channels")) || "null") || defaultChannels.slice(0, 6);
+      state.signals = JSON.parse(localStorage.getItem(key("signals")) || "[]");
+      state.selectedId = state.channels[0]?.id || null;
+    }
+
+    function setScreen(name) {
+      screens.forEach((screen) => screen.classList.toggle("active", screen.dataset.screen === name));
+      roomLabels.forEach((label) => { label.textContent = state.room; });
+      render();
+    }
+
+    function render() {
+      renderSelected();
+      renderChannels();
+      renderSignals();
+      renderLastSignal();
+    }
+
+    function renderSelected() {
+      const selected = state.channels.find((item) => item.id === state.selectedId);
+      actionButtons.forEach((button) => { button.disabled = !selected; });
+
+      if (!selected) {
+        stage.innerHTML = `
+          <div class="empty-state">
+            ${icon("monitor")}
+            <strong>Selecione um instrumento</strong>
+            <span>O canal escolhido sobe para esta área antes do envio.</span>
+          </div>
+        `;
+        return;
+      }
+
+      stage.innerHTML = `
+        <div class="selected-card" style="--channel-color: ${selected.color}">
+          <div>
+            <div class="selected-icon">${icon(selected.type)}</div>
+            <h2>${selected.name}</h2>
+            <p>Canal confirmado para o próximo sinal</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderChannels() {
+      countValue.textContent = state.channels.length;
+      channelCount.textContent = state.channels.length;
+      grid.innerHTML = state.channels.map((item) => `
+        <button
+          class="instrument-card ${item.id === state.selectedId ? "active" : ""}"
+          type="button"
+          data-channel="${item.id}"
+          style="--channel-color: ${item.color}"
+          aria-pressed="${item.id === state.selectedId}"
+        >
+          <div class="instrument-icon">${icon(item.type)}</div>
+          <span>${item.name}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderSignals() {
+      const sorted = [...state.signals].sort((a, b) => b.createdAt - a.createdAt);
+
+      if (!sorted.length) {
+        feed.innerHTML = `
+          <div class="empty-feed">
+            <div>
+              ${icon("monitor")}
+              <h2>Nenhum pedido recebido</h2>
+              <p>Quando o ministro enviar um sinal, ele aparece aqui para confirmar.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      feed.innerHTML = sorted.map((signal) => {
+        const isUp = signal.action === "aumentar";
+        const color = isUp ? "var(--up)" : "var(--down)";
+        const label = isUp ? "Aumentar" : "Abaixar";
+        return `
+          <article class="signal-card ${signal.status === "acknowledged" ? "acknowledged" : ""}" style="--signal-color: ${color}">
+            <div class="signal-icon">
+              <svg viewBox="0 0 24 24"><path d="${isUp ? "m18 15-6-6-6 6" : "m6 9 6 6 6-6"}"></path></svg>
+            </div>
+            <div>
+              <h2 class="signal-title">${label} ${signal.channelName}</h2>
+              <p class="signal-meta">${formatTime(signal.createdAt)} · ${signal.status === "acknowledged" ? "Recebido" : "Aguardando confirmação"}</p>
+              <button class="ack-btn" type="button" data-ack="${signal.id}" ${signal.status === "acknowledged" ? "disabled" : ""}>
+                ${signal.status === "acknowledged" ? "Confirmado" : "Recebido"}
+              </button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderLastSignal() {
+      const latest = [...state.signals].sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (!latest) {
+        lastSignal.innerHTML = `
+          <div>
+            <strong>Nenhum sinal enviado</strong>
+            Escolha um instrumento e toque em aumentar ou abaixar.
+          </div>
+        `;
+        return;
+      }
+
+      const action = latest.action === "aumentar" ? "Aumentar" : "Abaixar";
+      const status = latest.status === "acknowledged" ? "Recebido pela sonoplastia" : "Aguardando recebimento";
+      lastSignal.innerHTML = `
+        <div>
+          <strong>${action} ${latest.channelName}</strong>
+          ${status} · ${formatTime(latest.createdAt)}
+        </div>
+      `;
+    }
+
+    function formatTime(time) {
+      return new Intl.DateTimeFormat("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }).format(new Date(time));
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function sendSignal(action, demoChannel) {
+      const selected = demoChannel || state.channels.find((item) => item.id === state.selectedId);
+      if (!selected) return;
+
+      const signal = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        room: state.room,
+        channelId: selected.id,
+        channelName: selected.name,
+        action,
+        status: "pending",
+        createdAt: Date.now()
+      };
+
+      state.signals.push(signal);
+      saveSignals();
+      render();
+      showToast(`${action === "aumentar" ? "Aumentar" : "Abaixar"} ${selected.name} enviado`);
+    }
+
+    function addChannel(name, type, color) {
+      const cleanName = name.trim();
+      if (!cleanName) return;
+
+      state.channels.push({
+        id: `${cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`,
+        name: cleanName,
+        type,
+        color
+      });
+      state.selectedId = state.channels[state.channels.length - 1].id;
+      saveChannels();
+      render();
+    }
+
+    document.querySelector("#room-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const roomInput = document.querySelector("#room-code");
+      state.room = roomInput.value.trim().toUpperCase().replace(/\s+/g, "-") || "CULTO-1930";
+      roomInput.value = state.room;
+      localStorage.setItem("sinais-louvor:last-room", state.room);
+      loadRoomData();
+      setScreen("role");
+    });
+
+    document.querySelector("#random-room").addEventListener("click", () => {
+      const number = Math.floor(1000 + Math.random() * 9000);
+      document.querySelector("#room-code").value = `CULTO-${number}`;
+    });
+
+    document.querySelectorAll("[data-go]").forEach((button) => {
+      button.addEventListener("click", () => setScreen(button.dataset.go));
+    });
+
+    document.querySelectorAll("[data-role]").forEach((button) => {
+      button.addEventListener("click", () => setScreen(button.dataset.role));
+    });
+
+    grid.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-channel]");
+      if (!button) return;
+      state.selectedId = button.dataset.channel;
+      render();
+    });
+
+    actionButtons.forEach((button) => {
+      button.addEventListener("click", () => sendSignal(button.dataset.action));
+    });
+
+    document.querySelector("#add-channel-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = document.querySelector("#channel-name");
+      addChannel(name.value, document.querySelector("#icon-preset").value, document.querySelector("#channel-color").value);
+      name.value = "";
+      name.focus();
+    });
+
+    document.querySelector("#plus-channel").addEventListener("click", () => {
+      const next = defaultChannels[state.channels.length] || {
+        id: `canal-${state.channels.length + 1}`,
+        name: `Canal ${state.channels.length + 1}`,
+        type: "note",
+        color: "#38bdf8"
+      };
+      state.channels.push({ ...next, id: `${next.id}-${Date.now().toString(36)}` });
+      state.selectedId = state.channels[state.channels.length - 1].id;
+      saveChannels();
+      render();
+    });
+
+    document.querySelector("#minus-channel").addEventListener("click", () => {
+      if (state.channels.length <= 1) return;
+      const removed = state.channels.pop();
+      if (removed.id === state.selectedId) {
+        state.selectedId = state.channels[state.channels.length - 1]?.id || null;
+      }
+      saveChannels();
+      render();
+    });
+
+    feed.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-ack]");
+      if (!button) return;
+      state.signals = state.signals.map((signal) => (
+        signal.id === button.dataset.ack ? { ...signal, status: "acknowledged", acknowledgedAt: Date.now() } : signal
+      ));
+      saveSignals();
+      render();
+      showToast("Recebimento confirmado");
+    });
+
+    document.querySelector("#clear-ack").addEventListener("click", () => {
+      state.signals = state.signals.filter((signal) => signal.status !== "acknowledged");
+      saveSignals();
+      render();
+    });
+
+    document.querySelector("#demo-signal").addEventListener("click", () => {
+      const demo = state.channels[Math.floor(Math.random() * state.channels.length)];
+      sendSignal(Math.random() > 0.5 ? "aumentar" : "abaixar", demo);
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key === key("signals")) {
+        state.signals = JSON.parse(event.newValue || "[]");
+        render();
+      }
+    });
+
+    if (channel) {
+      channel.addEventListener("message", (event) => {
+        if (event.data.room !== state.room) return;
+        state.signals = event.data.signals;
+        render();
+      });
+    }
+
+    state.room = localStorage.getItem("sinais-louvor:last-room") || state.room;
+    document.querySelector("#room-code").value = state.room;
+    loadRoomData();
+    render();
+  </script>
+</body>
+</html>
