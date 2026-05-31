@@ -277,7 +277,7 @@
     }
 
     .selected-stage {
-      min-height: 234px;
+      min-height: 190px;
       display: grid;
       place-items: center;
       padding: 16px;
@@ -311,8 +311,8 @@
     }
 
     .selected-card {
-      width: min(100%, 270px);
-      aspect-ratio: 1 / 0.92;
+      width: min(100%, 238px);
+      aspect-ratio: 1 / 0.76;
       display: grid;
       place-items: center;
       text-align: center;
@@ -324,11 +324,11 @@
     }
 
     .selected-icon {
-      width: 112px;
-      height: 112px;
+      width: 78px;
+      height: 78px;
       display: grid;
       place-items: center;
-      border-radius: 32px;
+      border-radius: 24px;
       color: var(--channel-color);
       background: color-mix(in srgb, var(--channel-color) 18%, rgba(255, 255, 255, 0.04));
       margin-bottom: 12px;
@@ -336,7 +336,7 @@
 
     .selected-card h2 {
       margin: 0;
-      font-size: 28px;
+      font-size: 24px;
       line-height: 1;
     }
 
@@ -751,6 +751,14 @@
           <button class="ghost-btn" type="button" data-go="role">Trocar</button>
         </div>
 
+        <div>
+          <div class="section-head">
+            <h2>Toque em um canal</h2>
+            <span>Ele sobe para confirmar</span>
+          </div>
+          <div class="instrument-grid" id="instrument-grid"></div>
+        </div>
+
         <div class="selected-stage" id="selected-stage"></div>
 
         <div class="action-panel">
@@ -811,14 +819,6 @@
             </button>
           </form>
         </div>
-
-        <div>
-          <div class="section-head">
-            <h2>Toque em um canal</h2>
-            <span>Ele sobe para confirmar</span>
-          </div>
-          <div class="instrument-grid" id="instrument-grid"></div>
-        </div>
       </section>
 
       <section class="screen" data-screen="receiver">
@@ -847,6 +847,9 @@
 
   <div class="toast" id="toast" role="status"></div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script>
     const defaultChannels = [
       { id: "voz-principal", name: "Voz principal", type: "mic", color: "#38bdf8" },
@@ -877,6 +880,12 @@
     const lastSignal = document.querySelector("#last-signal");
     const toast = document.querySelector("#toast");
     const channel = "BroadcastChannel" in window ? new BroadcastChannel("louvor-sinais") : null;
+    const remoteSync = {
+      enabled: false,
+      database: null,
+      signalsRef: null,
+      listener: null
+    };
 
     function icon(type) {
       const icons = {
@@ -895,6 +904,84 @@
 
     function key(name) {
       return `sinais-louvor:${state.room}:${name}`;
+    }
+
+    function roomPath() {
+      return state.room
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "sala";
+    }
+
+    function initRemoteSync() {
+      const config = window.SINAIS_FIREBASE_CONFIG;
+      if (!config || !config.apiKey || !config.databaseURL || !window.firebase) return;
+
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(config);
+        }
+        remoteSync.database = firebase.database();
+        remoteSync.enabled = true;
+      } catch (error) {
+        remoteSync.enabled = false;
+        console.warn("Firebase sync unavailable", error);
+      }
+    }
+
+    function disconnectRoomSync() {
+      if (remoteSync.signalsRef && remoteSync.listener) {
+        remoteSync.signalsRef.off("value", remoteSync.listener);
+      }
+      remoteSync.signalsRef = null;
+      remoteSync.listener = null;
+    }
+
+    function connectRoomSync() {
+      disconnectRoomSync();
+      if (!remoteSync.enabled || !remoteSync.database) return;
+
+      remoteSync.signalsRef = remoteSync.database.ref(`rooms/${roomPath()}/signals`);
+      remoteSync.listener = (snapshot) => {
+        const remoteSignals = snapshot.val() || {};
+        state.signals = Object.values(remoteSignals);
+        localStorage.setItem(key("signals"), JSON.stringify(state.signals));
+        if (channel) {
+          channel.postMessage({ room: state.room, signals: state.signals });
+        }
+        render();
+      };
+
+      remoteSync.signalsRef.on("value", remoteSync.listener, () => {
+        showToast("Sincronização online indisponível");
+      });
+    }
+
+    function publishRemoteSignal(signal) {
+      if (!remoteSync.signalsRef) return;
+      remoteSync.signalsRef.child(signal.id).set(signal).catch(() => {
+        showToast("Sinal salvo só neste aparelho");
+      });
+    }
+
+    function updateRemoteSignal(id, data) {
+      if (!remoteSync.signalsRef) return;
+      remoteSync.signalsRef.child(id).update(data).catch(() => {
+        showToast("Confirmação salva só neste aparelho");
+      });
+    }
+
+    function removeRemoteSignals(signals) {
+      if (!remoteSync.signalsRef || !signals.length) return;
+      const updates = {};
+      signals.forEach((signal) => {
+        updates[signal.id] = null;
+      });
+      remoteSync.signalsRef.update(updates).catch(() => {
+        showToast("Limpeza salva só neste aparelho");
+      });
     }
 
     function saveChannels() {
@@ -1060,6 +1147,7 @@
 
       state.signals.push(signal);
       saveSignals();
+      publishRemoteSignal(signal);
       render();
       showToast(`${action === "aumentar" ? "Aumentar" : "Abaixar"} ${selected.name} enviado`);
     }
@@ -1086,6 +1174,7 @@
       roomInput.value = state.room;
       localStorage.setItem("sinais-louvor:last-room", state.room);
       loadRoomData();
+      connectRoomSync();
       setScreen("role");
     });
 
@@ -1151,13 +1240,16 @@
         signal.id === button.dataset.ack ? { ...signal, status: "acknowledged", acknowledgedAt: Date.now() } : signal
       ));
       saveSignals();
+      updateRemoteSignal(button.dataset.ack, { status: "acknowledged", acknowledgedAt: Date.now() });
       render();
       showToast("Recebimento confirmado");
     });
 
     document.querySelector("#clear-ack").addEventListener("click", () => {
+      const acknowledged = state.signals.filter((signal) => signal.status === "acknowledged");
       state.signals = state.signals.filter((signal) => signal.status !== "acknowledged");
       saveSignals();
+      removeRemoteSignals(acknowledged);
       render();
     });
 
@@ -1183,7 +1275,9 @@
 
     state.room = localStorage.getItem("sinais-louvor:last-room") || state.room;
     document.querySelector("#room-code").value = state.room;
+    initRemoteSync();
     loadRoomData();
+    connectRoomSync();
     render();
   </script>
 </body>
